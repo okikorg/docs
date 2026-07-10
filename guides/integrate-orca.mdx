@@ -1,0 +1,59 @@
+---
+title: "Integrating Orca AI Agents into Your Product Backend"
+sidebarTitle: "Integrate Orca"
+description: "Add agent runs, streaming progress, and session continuity to your backend. Stream live run events to your frontend and reuse session IDs for continuity."
+---
+
+Use Orca when your product needs AI agents as a real feature — not a one-off script. Your application creates or selects an agent profile tailored to a specific job, submits a run from your backend using a tenant API key, streams live events to your frontend so users see progress in real time, and stores the returned session ID so follow-up work picks up exactly where it left off. As your use case grows, you attach tools, skills, memory, and storage without changing the core integration shape.
+
+## Integration pattern
+
+Follow these five steps to integrate Orca into any product backend:
+
+1. **Create an agent profile** for the specific job your product needs (support triage, research, code review, etc.).
+2. **Call Orca from your backend** using a tenant API key — never expose the key to the client.
+3. **Stream run events to your frontend** so users see live progress as the agent works.
+4. **Reuse the returned session ID** when the same user continues or extends the same task.
+5. **Grow with tools and skills** — attach MCP servers, memory, storage, or additional skills as your use case matures.
+
+## Backend call
+
+Call `runs.create` from your server with the agent profile name, an optional session ID for continuity, and the user's prompt as context:
+
+```typescript
+const run = await client.runs.create({
+  id: "",
+  profile: "support-triager",
+  sessionId: user.currentOrcaSessionId ?? "",
+  title: "Triage support conversation",
+  prompt: `Summarize this customer issue and suggest next steps:\n\n${transcript}`,
+});
+```
+
+Store `run.sessionId` on the user's record so the next request can pass it back and maintain conversation context.
+
+## Frontend stream
+
+Your frontend receives a stream of Server-Sent Events for each run. Map each event type to the appropriate UI behavior:
+
+| Event | Product behavior |
+| --- | --- |
+| `session_init` | The run session has been created and is ready; store the session ID for continuity |
+| `progress` | Update a status line or spinner with the agent's current step |
+| `assistant` | Append streamed text to the response area as it arrives |
+| `tool_call` | Show tool activity (e.g., "Searching knowledge base…") when transparency helps |
+| `tool_result` | The tool call has returned; use for display or debugging if needed |
+| `usage` | Record token usage for metering, analytics, or cost attribution |
+| `result` | Mark the task complete and surface the final output |
+| `error` | Transition to a recoverable failure state and surface a user-friendly message |
+
+## Where Orca fits
+
+Orca sits behind your product backend. Your users interact entirely with your product's UI — they never need to know Orca is involved. Your backend decides which agent profile to invoke, what context and constraints to pass, and how to present the result. This keeps your product logic in control and your Orca credentials secure on the server side.
+
+<Tip>
+  Use the chat gateway only when you want end users or customers to talk
+  directly with a published agent — for example, a support assistant embedded
+  in your product. For all other programmatic use, call the control-plane API
+  from your backend.
+</Tip>

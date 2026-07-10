@@ -1,0 +1,139 @@
+---
+title: "Orca Go SDK: Runs, Streaming Events, and Agent Profiles"
+sidebarTitle: "Go"
+description: "Use the Orca Go SDK to create runs, stream events, and manage agents from Go services. Wraps the public control-plane API with idiomatic Go types."
+---
+
+The Orca Go SDK wraps the public control-plane API with idiomatic Go types, functional options, and a raw-stream reader. You can use it to register profiles, submit runs, consume streaming events, and manage sessions, storage, and memory directly from Go services or command-line tools. The client is safe for concurrent use and exposes standard `error` values so it fits naturally into existing Go error-handling patterns.
+
+## Installation
+
+Fetch the module with `go get`:
+
+```bash
+go get github.com/okikorg/orca/sdks/go
+```
+
+## Client setup
+
+Import the `client` and `option` packages, then construct a client with your credentials and an HTTP timeout appropriate for streaming runs:
+
+```go
+package main
+
+import (
+	"net/http"
+	"os"
+	"time"
+
+	orcclient "github.com/okikorg/orca/sdks/go/client"
+	"github.com/okikorg/orca/sdks/go/option"
+)
+
+func newClient() *orcclient.Client {
+	return orcclient.NewClient(
+		option.WithBaseURL(os.Getenv("ORCA_API_URL")),
+		option.WithBearerToken(os.Getenv("ORCA_API_KEY")),
+		option.WithTenantID(ptr(os.Getenv("ORCA_TENANT_ID"))),
+		option.WithHTTPClient(&http.Client{Timeout: 120 * time.Second}),
+	)
+}
+
+func ptr[T any](v T) *T {
+	return &v
+}
+```
+
+<Tip>
+  Set the HTTP client timeout to 120 seconds or more. Streaming runs can take a long time to complete, and the default `http.Client` timeout of zero (no timeout) or a short value will cut the stream off before the run finishes.
+</Tip>
+
+## Create a profile
+
+A profile is a reusable agent definition. Call `client.Profiles.Create` to register one. The `api.String` helper wraps a string literal into a pointer for optional fields:
+
+```go
+_, err := client.Profiles.Create(ctx, &api.Profile{
+	Name:         "researcher",
+	Runtime:      "general",
+	Model:        api.String("anthropic:claude-opus-4-6"),
+	SystemPrompt: api.String("You are a research assistant. Be concise and cite sources."),
+	Tools:        []string{"@default"},
+})
+if err != nil {
+	return err
+}
+```
+
+You only need to create a profile once. After that, submit runs against it by name.
+
+## Submit a run
+
+Call `client.Runs.Create` with a `SubTask` that names the profile and supplies the prompt. The response includes a `RunID` and a `SessionID`:
+
+```go
+created, err := client.Runs.Create(ctx, &api.SubTask{
+	Profile: "researcher",
+	Title:   "SDK onboarding",
+	Prompt:  api.String("Explain Orca profiles and runs in three bullets."),
+})
+if err != nil {
+	return err
+}
+
+fmt.Println(created.RunID, created.SessionID)
+```
+
+## Stream events
+
+Open a stream with `client.Runs.Stream`, then loop over raw messages with `stream.RecvRaw`. Unmarshal each message into `api.Event` and handle the event types your application cares about:
+
+```go
+stream, err := client.Runs.Stream(ctx, &api.StreamRunsRequest{ID: created.RunID})
+if err != nil {
+	return err
+}
+defer stream.Close()
+
+for {
+	raw, err := stream.RecvRaw()
+	if err == io.EOF {
+		break
+	}
+	if err != nil {
+		return err
+	}
+
+	var event api.Event
+	if err := json.Unmarshal(raw, &event); err != nil {
+		return err
+	}
+
+	switch event.Type {
+	case "assistant":
+		// Incremental assistant output — write to stdout or buffer
+		if event.Message != nil {
+			fmt.Print(*event.Message)
+		}
+	case "tool_call":
+		// A tool is being invoked
+		if event.ToolName != nil {
+			fmt.Printf("\n[tool] %s\n", *event.ToolName)
+		}
+	case "result":
+		// Run complete — event.Message contains the final output
+		if event.Message != nil {
+			fmt.Printf("\n[result] %s\n", *event.Message)
+		}
+	case "error":
+		// Run encountered an error
+		if event.Message != nil {
+			fmt.Fprintf(os.Stderr, "[error] %s\n", *event.Message)
+		}
+	}
+}
+```
+
+<Note>
+  Always `defer stream.Close()` immediately after opening the stream. This ensures the underlying HTTP response body is drained and released even if your loop exits early due to an error.
+</Note>

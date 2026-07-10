@@ -1,0 +1,69 @@
+---
+title: "Run and Monitor Multi-Step Agent Workflows in Orca"
+sidebarTitle: "Workflows"
+description: "Workflows coordinate multi-step agent work with dependencies, status tracking, and repair. Learn how to start, monitor, and cancel workflow runs."
+---
+
+Workflows let you turn a single high-level goal into a repeatable, multi-step agent process. Instead of sending one large prompt and waiting for a single response, a workflow breaks the work into discrete steps with explicit dependencies, tracks the status of each step independently, and gives you the ability to pause, resume, or repair individual parts without restarting from scratch. Use workflows whenever you need visibility into long-running agent work or want to make a complex process repeatable and auditable.
+
+## Common CLI commands
+
+Use the `orca workflows` command group to manage workflow definitions and their runs:
+
+```bash
+# List all workflows in your workspace
+orca workflows list
+
+# Inspect a specific workflow definition
+orca workflows get workflow_...
+
+# Start a new run of a workflow
+orca workflows start workflow_... --prompt "Prepare a launch checklist"
+
+# List all runs across workflows
+orca workflows runs
+
+# Inspect a specific workflow run
+orca workflows runs get wfr_...
+
+# Stream live progress for a running workflow
+orca workflows tail wfr_...
+
+# Cancel a running workflow
+orca workflows cancel wfr_... --yes
+```
+
+## When to use workflows
+
+**Use workflows for:**
+
+- **Multi-agent processes** where different agents handle different steps and results flow between them.
+- **Repeatable flows** — research, content review, compliance checks, or operations tasks you run on a schedule or trigger.
+- **Step-level progress** — when stakeholders or your UI need to see which stage of the process is currently running.
+- **Scheduled or repairable jobs** — work that should recover gracefully from transient failures without losing all progress.
+
+**Use a single run for:**
+
+- One-off tasks where the result is all you need and intermediate steps don't matter.
+- Short chats or question-answer interactions with a single agent.
+- Simple actions against one agent that complete in a single pass.
+
+## Workflow run status
+
+Each workflow run moves through a defined set of status values:
+
+| Status | Meaning |
+| --- | --- |
+| `pending` | The run has been accepted and is waiting to be scheduled |
+| `running` | The workflow is actively executing one or more steps |
+| `paused` | Execution is suspended, awaiting a resume signal or human input |
+| `completed` | All steps finished successfully |
+| `failed` | One or more steps failed and the run could not recover |
+| `cancelled` | The run was stopped manually before completion |
+
+<Tip>
+  Use `orca workflows tail wfr_...` to watch a workflow run's live event stream
+  in your terminal. It prints each step's progress, tool calls, and final
+  output as they happen — useful for debugging new workflows or monitoring
+  long-running jobs.
+</Tip>

@@ -1,0 +1,51 @@
+---
+title: "Orca Use Cases: Support, Research, Ops, and Coding"
+sidebarTitle: "Use Cases"
+description: "Explore how teams use Orca for support triage, research assistants, operations automation, and coding agents. See which Orca surfaces fit each workflow."
+---
+
+Teams use Orca to build agent features that require session continuity, real-time streaming, controlled tool access, and clear API boundaries. The platform is flexible enough to power anything from a single customer-facing support assistant to a suite of automated operations workflows — but the patterns below cover the most common starting points. Each use case maps naturally to a specific set of Orca surfaces, so you can pick up only what you need.
+
+## Support triage
+
+A support triage agent reads inbound customer messages, classifies urgency and category, summarizes the issue for the support team, suggests a reply or next action, and calls approved tools to pull ticket history or customer context on demand. Because conversations can span multiple messages, session continuity ensures the agent remembers what was said earlier in the same thread.
+
+**Useful Orca surfaces:**
+
+- **Agent profiles** — define support-specific instructions, tone, and constraints for the agent.
+- **Skills** — encode support policy, escalation procedures, and product knowledge the agent can reference.
+- **MCP servers** — connect the agent to your ticketing system, CRM, or documentation search.
+- **Run event streams** — surface live agent progress inside your support UI so agents see what the assistant is doing.
+
+## Research assistant
+
+A research agent gathers context from multiple sources, compares options or perspectives, writes a structured summary or report, and stores findings for future reference. Multi-step research tasks benefit from workflows, which break the process into stages (gather, synthesize, write, review) and make the overall status visible to the team requesting the research.
+
+**Useful Orca surfaces:**
+
+- **Memory** — give the agent persistent knowledge it can draw on across separate research sessions.
+- **Storage** — save reports, outlines, and raw notes as reusable artifacts.
+- **Workflows** — structure multi-step research tasks with explicit stages and dependencies.
+- **SDKs** — embed the research workflow in an internal tool so non-technical users can trigger it.
+
+## Operations automation
+
+Operations agents handle repeated, well-defined tasks — generating weekly reports, reviewing account health, preparing incident runbooks, or cleaning up stale data. These jobs often run on a schedule, need to call external systems securely, and benefit from usage visibility so teams can audit what ran and when.
+
+**Useful Orca surfaces:**
+
+- **CLI** — trigger runs from cron jobs, CI pipelines, or shell scripts without writing application code.
+- **Workflows** — model multi-step operations jobs with status tracking and the ability to retry failed steps.
+- **Usage and stats** — monitor run frequency, token consumption, and completion rates for cost and reliability oversight.
+- **Secrets and MCP servers** — give the agent controlled, auditable access to external systems like databases, APIs, or cloud infrastructure.
+
+## Coding and review agents
+
+Coding agents inspect source repositories, produce targeted patches, review pull requests for style and correctness, explain unfamiliar code, or generate tests. These tasks are often long-running and benefit from streaming so developers see output as it's produced. Session continuity lets a developer follow up with refining instructions without losing context.
+
+**Useful Orca surfaces:**
+
+- **Runtime-specific agent profiles** — configure the agent with language-aware instructions and the correct model for code tasks.
+- **Sandboxed workspaces and storage** — give the agent a safe environment to read, write, and test code without touching production systems.
+- **Run event streams** — stream partial output to the developer's editor or review UI as the agent works through a file or diff.
+- **Session continuity** — let the developer send follow-up instructions ("now add tests for that function") and have the agent remember what it just wrote.

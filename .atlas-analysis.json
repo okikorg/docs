@@ -1,0 +1,137 @@
+{
+  "projectType": "saas",
+  "projectName": "Orca",
+  "projectDescription": "Orca is an AI agent platform that lets teams build, run, and publish reusable agents through a dashboard, CLI, SDKs, and public APIs.",
+  "theme": "luma",
+  "primaryColor": "#FF775C",
+  "lightColor": "#CC4B32",
+  "darkColor": "#FF775C",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "get-started/create-an-agent",
+              "get-started/stream-a-run"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/agents",
+              "concepts/runs-and-sessions",
+              "concepts/tools-skills-and-mcp",
+              "concepts/memory-and-storage",
+              "concepts/published-agents"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/integrate-orca",
+              "guides/published-chat",
+              "guides/workflows",
+              "guides/use-cases",
+              "guides/authentication",
+              "guides/errors-and-events"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI & SDKs",
+        "groups": [
+          {
+            "group": "CLI",
+            "pages": [
+              "cli/overview",
+              "cli/authentication",
+              "cli/commands",
+              "cli/agent-files"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdk/overview",
+              "sdk/typescript",
+              "sdk/python",
+              "sdk/go"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/control-plane",
+              "api-reference/chat-gateway"
+            ]
+          },
+          {
+            "group": "Control Plane API",
+            "openapi": "/api-reference/orca-openapi.yaml"
+          },
+          {
+            "group": "Chat Gateway API",
+            "openapi": "/api-reference/chat-openapi.yaml"
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Reusable agent profiles with model, runtime, tools, skills, and MCP server configuration",
+    "Streaming runs via Server-Sent Events with live event types (progress, assistant, tool_call, result)",
+    "Session continuity for multi-turn and follow-up workflows",
+    "Published agents with scoped chat keys and a separate chat gateway API",
+    "Multi-step workflows with step-level status tracking and repair",
+    "Persistent memory and tenant-scoped file storage per agent",
+    "MCP server integration for connecting agents to external systems",
+    "CLI for terminal-first management of all Orca resources",
+    "TypeScript, Python, and Go SDKs against the public control-plane API",
+    "Connected apps (Composio, Pipedream) for extending agent capabilities"
+  ],
+  "publicApiSurface": [
+    "POST /api/runs — start a run",
+    "GET /api/runs/{id}/stream — subscribe to a live SSE run stream",
+    "GET /api/runs/{id}/events — replay stored run events as NDJSON",
+    "GET /api/runs/{id} — get a run with buffered event tail",
+    "DELETE /api/runs/{id} — cancel an in-flight run",
+    "GET /api/profiles — list agent profiles",
+    "POST /api/profiles — create an agent profile",
+    "GET /api/profiles/{name} — get a profile by name",
+    "PUT /api/profiles/{name} — update or rename a profile",
+    "DELETE /api/profiles/{name} — delete a profile",
+    "POST /api/profiles/{name}/publish — publish a profile to the chat gateway",
+    "DELETE /api/profiles/{name}/published — unpublish an agent",
+    "POST /api/profiles/{name}/keys — mint a published-agent chat key",
+    "POST /v1/chat/{tenant}/{agent} — send a synchronous chat message",
+    "POST /v1/chat/{tenant}/{agent}/stream — send a streaming SSE chat message",
+    "GET /v1/chat/{tenant}/{agent}/conversations/{id} — fetch conversation history",
+    "GET /api/sessions — list sessions",
+    "POST /api/sessions — create a session",
+    "GET /api/skills — list skills",
+    "POST /api/skills — create a skill",
+    "POST /api/mcp-servers — register an MCP server",
+    "POST /api/mcp-servers/test — probe an MCP server",
+    "GET /api/storage/objects — list storage objects",
+    "PUT /api/storage/objects/{key} — upload a storage object",
+    "GET /api/profiles/{name}/memories — list agent memories",
+    "GET /api/profiles/{name}/memories/search — search memories by relevance",
+    "POST /api/secrets — create a secret",
+    "POST /api/workflows/runs — create a workflow run",
+    "GET /api/workflows/runs/{id}/stream — subscribe to workflow run status changes",
+    "GET /api/api-keys — list tenant API keys",
+    "POST /api/api-keys — mint a tenant API key"
+  ]
+}

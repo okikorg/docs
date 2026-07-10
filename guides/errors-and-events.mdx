@@ -1,0 +1,61 @@
+---
+title: "Handle Orca Run Events, HTTP Errors, and CLI Exit Codes"
+sidebarTitle: "Errors & Events"
+description: "Reference for Orca run stream event types, HTTP error status codes, and CLI exit codes. Use this when building error handling into your integration."
+---
+
+Orca surfaces errors and status information across three interfaces: the streaming event protocol for run progress, HTTP status codes for API responses, and exit codes for CLI invocations. Understanding all three helps you build robust integrations that handle failures gracefully — whether you're rendering a live UI, calling the API from a backend service, or scripting operations in a pipeline.
+
+## Run events
+
+Run streams use the Server-Sent Events (SSE) protocol. Each event arrives as a `data:` line containing a JSON object with a `type` field:
+
+```text
+data: {"type": "assistant", "message": "Here is a summary of the issue..."}
+```
+
+Your stream consumer should switch on `type` and handle each event accordingly:
+
+| Event type | Description |
+| --- | --- |
+| `session_init` | The run session has been created. Contains the session ID — store it for conversation continuity. |
+| `progress` | A status update describing what the agent is currently doing (e.g., searching, planning). |
+| `assistant` | A chunk of the agent's text response. Append these chunks in order to build the full reply. |
+| `tool_call` | The agent is invoking a tool. Contains the tool name and input arguments. |
+| `tool_result` | The result returned by a tool call. Follows a corresponding `tool_call` event. |
+| `usage` | Token usage statistics for the run. Use for metering, cost attribution, or analytics. |
+| `result` | The final, successful output of the run. The stream ends after this event. |
+| `error` | The run encountered an unrecoverable error. The stream ends after this event. |
+
+<Tip>
+  Treat `result` as the success terminal state and `error` as the failure
+  terminal state. Both signal the end of the stream — any cleanup or UI
+  transitions should happen when you receive either of these event types.
+</Tip>
+
+## HTTP errors
+
+The Orca control-plane API and chat gateway return standard HTTP status codes. Handle these in your backend service or API client:
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Invalid request body or parameter — check your request payload against the API reference |
+| `401` | Missing or invalid credentials — verify that the correct key type is present in the `Authorization` header |
+| `403` | Credentials do not allow the requested action — the key is valid but lacks permission for this operation |
+| `404` | Resource not found — the agent, run, workflow, or other resource does not exist |
+| `409` | Resource already exists or state conflict — for example, trying to publish an agent slug that is already taken |
+| `429` | Rate limited — back off and retry after the interval indicated in the `Retry-After` header |
+| `500` | Server error — Orca encountered an unexpected internal error; retry with exponential backoff |
+
+## CLI exit codes
+
+When scripting Orca operations in a shell pipeline or CI system, check the exit code to determine whether a command succeeded:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success — the command completed without errors |
+| `1` | API, network, or failed run error — the server returned an error or the run itself failed |
+| `2` | Usage or validation error — the command was invoked with invalid flags or arguments |
+| `3` | Missing, invalid, or insufficient authentication — check your `ORCA_API_KEY` and `ORCA_TENANT` configuration |
+| `4` | Named resource not found — the agent, workflow, or run ID you specified does not exist |
+| `130` | Detached or interrupted — the command was cancelled with `Ctrl-C` or received a `SIGINT` signal |

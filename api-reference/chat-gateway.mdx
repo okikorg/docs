@@ -1,0 +1,160 @@
+---
+title: "Chat Gateway API: End-User Chat with Published Agents"
+sidebarTitle: "Chat Gateway"
+description: "The Orca chat gateway API lets end-user applications send synchronous or streaming chat messages to published agents using scoped chat keys."
+---
+
+The chat gateway is the public-facing API for published Orca agents. It is intentionally separate from the control plane API: it exposes only the operations an end-user application needs to send messages and read conversation history, and it is secured by per-agent chat keys rather than tenant-wide API keys. You use the chat gateway when you want to embed an agent-powered chat experience in your product without exposing broad control over your Orca tenant.
+
+## When to use the chat gateway
+
+Use the chat gateway instead of the control plane API when:
+
+- You are embedding a chat experience in a customer-facing product backed by a published Orca agent.
+- You need a key that is scoped to a single agent so a compromised key cannot access your other agents or tenant resources.
+- You want the gateway to handle conversation history automatically rather than managing session state yourself.
+- You need either a streaming (Server-Sent Events) or synchronous JSON response, and want the gateway to abstract the underlying run lifecycle.
+
+## Authentication
+
+### Chat key
+
+Use a published-agent chat key as the bearer token on every request:
+
+```bash
+Authorization: Bearer ao_...
+```
+
+Chat keys follow the same `ao_<env>_<random>` format as tenant API keys, but are scoped exclusively to a single published agent. The tenant is derived from the validated key — you do not send an `X-Tenant-ID` header on the chat gateway API.
+
+### Creating a chat key
+
+Mint a chat key from the CLI using the publishing surface:
+
+```bash
+orca agents keys create support
+```
+
+This creates a scoped key for the published agent with the slug `support`. The plaintext token is shown once at creation time; copy it immediately.
+
+<Warning>
+  Chat keys are **not** the same as tenant API keys. A chat key is scoped to a single published agent and can only call chat gateway endpoints. It cannot access the control plane API — attempting to do so returns `401 unauthorized`. Never use a tenant API key in a client-side application.
+</Warning>
+
+## Route structure
+
+All chat gateway endpoints follow this path structure:
+
+```bash
+/v1/chat/{tenant}/{agent}
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `tenant`  | Your tenant slug (e.g. `acme`). Must match the tenant the bearer key was issued for — a mismatch returns `403`. |
+| `agent`   | The published-agent slug chosen at publish time (e.g. `support`). This is never the internal profile name. |
+
+## Synchronous chat
+
+Send a message and wait for the terminal assistant reply. The request blocks until the agent responds (up to 60 seconds by default, hard-capped at 270 seconds).
+
+```bash
+curl -X POST https://agents.example.com/v1/chat/acme/support \
+  -H "Authorization: Bearer ao_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What is the status of my order?",
+    "conversation_id": "conv_123"
+  }'
+```
+
+A successful response returns the terminal assistant message:
+
+```json
+{
+  "conversation_id": "conv_123",
+  "message": "Your order #4521 is out for delivery and should arrive today.",
+  "public_run_id": "prun_8x4k2p6n9wq3vt7y2m4r5b"
+}
+```
+
+<Note>
+  If the run exceeds the sync timeout window, the gateway returns `504 sync_timeout` with the `public_run_id` in the body. The underlying run continues executing — you can retrieve the eventual answer from `GET /v1/chat/{tenant}/{agent}/runs/{public_run_id}`.
+</Note>
+
+## Streaming chat
+
+Send a message and receive the response as a Server-Sent Events stream. This is the best choice for chat UIs where you want to display text as the agent generates it.
+
+```bash
+curl -X POST https://agents.example.com/v1/chat/acme/support/stream \
+  -H "Authorization: Bearer ao_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Summarize the Q3 report."
+  }'
+```
+
+The gateway opens an SSE connection and emits events as the run progresses:
+
+```bash
+id: prun_8x4k2p6n9wq3vt7y2m4r5b:0
+event: delta
+data: {"text":"Here is "}
+
+id: prun_8x4k2p6n9wq3vt7y2m4r5b:1
+event: delta
+data: {"text":"the summary..."}
+
+id: prun_8x4k2p6n9wq3vt7y2m4r5b:2
+event: tool
+data: {"id":"tc_abc","name":"web_search","status":"running"}
+
+id: prun_8x4k2p6n9wq3vt7y2m4r5b:3
+event: done
+data: {"public_run_id":"prun_8x4k2p6n9wq3vt7y2m4r5b","conversation_id":"conv_abc","message":"Here is the summary..."}
+```
+
+Each frame carries an `id` of the form `<public_run_id>:<seq>`. The connection closes once the terminal `done` or `error` event is emitted.
+
+The gateway emits five event types on the public stream:
+
+| Event | Description |
+|-------|-------------|
+| `delta` | Incremental assistant text chunk. Concatenate `data.text` in order to reconstruct the final message. |
+| `tool` | Tool-call lifecycle event. Only emitted when the published agent has `exposeToolEvents` enabled. `data.status` is one of `running`, `ok`, or `error`. Tool output payloads are never surfaced on the public stream. |
+| `done` | Terminal success event — always the last frame. Contains `public_run_id`, `conversation_id`, and the complete `message`. |
+| `error` | Terminal failure event — always the last frame, e.g. `{"code":"upstream","message":"run failed mid-stream","public_run_id":"prun_..."}`. The connection closes immediately after. |
+| `: ping` | Comment-frame heartbeat emitted every ~15 seconds. Keeps reverse proxies from closing idle connections; safe to ignore. |
+
+If the run encounters an error mid-stream, the connection terminates with an `error` event:
+
+```bash
+id: prun_8x4k2p6n9wq3vt7y2m4r5b:4
+event: error
+data: {"code":"upstream","message":"run failed mid-stream","public_run_id":"prun_8x4k2p6n9wq3vt7y2m4r5b"}
+```
+
+<Tip>
+  If the stream drops mid-run, the underlying run keeps executing. Re-attach using `GET /v1/chat/{tenant}/{agent}/runs/{public_run_id}/stream` — the gateway replays buffered events so you catch up without losing any content.
+</Tip>
+
+## Conversation continuity
+
+The gateway tracks conversation history automatically using a `conversation_id`.
+
+- **Start a new conversation** — omit `conversation_id` from the request body. The gateway mints a fresh ID and returns it in the response. Store this ID in your client for follow-up turns.
+- **Continue an existing conversation** — pass the `conversation_id` from the previous response. The gateway maps it to the same underlying session so the agent has full context of the conversation history.
+
+```json
+{
+  "message": "Can you elaborate on point 3?",
+  "conversation_id": "conv_123"
+}
+```
+
+Conversations map one-to-one to chat sessions. You can also retrieve full conversation history from `GET /v1/chat/{tenant}/{agent}/conversations/{id}`, which supports cursor-based pagination via the `before` query parameter.
+
+## Endpoints
+
+The full auto-generated endpoint reference — including request schemas, response shapes, SSE event definitions, and interactive examples — is available in the **Chat Gateway API Reference** section directly below this page in the sidebar. That reference is generated from `api-reference/chat-openapi.yaml`.

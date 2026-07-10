@@ -1,0 +1,38 @@
+---
+title: "How Orca Works: Architecture and Platform Overview"
+sidebarTitle: "Architecture"
+description: "Understand Orca's user-facing architecture: control surfaces, request flow, and the boundary between workspace management and published chat."
+---
+
+Orca gives your product, team, and end users one place to create agents, submit work, stream progress, and expose selected agents through a public chat surface. Rather than dealing with model provider integrations, infrastructure wiring, or security boundaries yourself, you interact with Orca through a small set of well-defined surfaces — each designed for a specific audience and use case. Understanding how those surfaces connect helps you build confidently on the platform.
+
+## What you interact with
+
+| Surface | Who uses it | What it does |
+| --- | --- | --- |
+| Dashboard | Operators and workspace admins | Create agents, inspect runs, manage resources, and publish agents |
+| CLI | Developers and automation | Script agent, run, key, storage, memory, MCP, skill, usage, and workflow operations |
+| SDKs | Product and backend code | Create runs, stream events, manage agents, and integrate Orca into applications |
+| Control plane API | Any trusted application | The HTTP surface behind the dashboard, CLI, and SDKs |
+| Chat gateway | End-user products | Send chat messages to published agents with scoped chat keys |
+
+## Request flow
+
+1. A user, script, backend service, or chat client submits work to Orca.
+2. Orca resolves the target agent profile, session context, tools, memory, storage, and access rules.
+3. An agent session executes the task with the selected model and approved capabilities.
+4. Orca streams events back to the caller: progress, assistant output, tool activity, usage, result, or error.
+5. If the agent is published, end users interact only with the chat gateway — never with the full workspace API.
+
+## Boundary model
+
+Orca exposes two main public surfaces that serve distinct audiences:
+
+- **Workspace control surface** — the dashboard, CLI, SDKs, and control-plane API. This surface is for trusted operators and developers who build, configure, and manage agents. Access here is protected by your workspace credentials.
+- **Published chat surface** — scoped chat endpoints powered by the chat gateway. This surface is for end-user applications and customers. Access is gated by per-agent chat keys that you issue and can revoke independently.
+
+This separation lets your team manage agents and workspace resources privately while exposing only the agents you choose to your users.
+
+<Note>
+  The chat gateway only exposes conversation operations. It never surfaces your workspace credentials, agent profile configuration, secrets, raw session internals, or administrative endpoints. End users interacting with a published agent cannot reach anything outside the chat surface, even if they attempt to probe the API.
+</Note>

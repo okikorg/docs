@@ -1,0 +1,65 @@
+---
+title: "Published Agents: Expose Agents via the Chat Gateway"
+sidebarTitle: "Published Agents"
+description: "Publishing creates a stable chat API for an agent. Scoped chat keys authenticate end users without exposing your workspace control-plane API."
+---
+
+Publishing an agent creates a stable, externally accessible chat surface for it. Once published, your agent is reachable through Orca's chat gateway under a URL that includes your tenant slug and the agent's slug. End-user applications authenticate with scoped chat keys that are entirely separate from your workspace credentials — so you can share access with customers, revoke keys independently, and keep your control-plane secure even as your agent grows in reach.
+
+## Publish an agent
+
+Use the CLI to publish an agent and generate a chat key for it:
+
+```bash
+# Publish the agent and assign a public slug
+orca agents publish support --slug support
+
+# Create a scoped chat key for the published agent
+orca agents keys create support
+```
+
+The key returned by `keys create` is scoped to chat operations for that specific agent. Keep it separate from your tenant control-plane API keys — the two credential types grant very different levels of access.
+
+<Warning>
+  Chat keys are shown **once** at creation time. Copy the key immediately and store it securely in your backend secrets manager. If you lose it, you will need to revoke and recreate the key.
+</Warning>
+
+## Chat from the CLI
+
+You can send chat messages directly from the CLI by setting two environment variables and then using `orca chat`:
+
+```bash
+# Set your gateway URL and chat key
+export ORCA_GATEWAY_URL=https://agents.example.com
+export ORCA_CHAT_KEY=ao_...
+
+# Open an interactive chat session with the published agent
+orca chat support --tenant acme
+
+# Send a single message and receive a response
+orca chat support "Can you summarize my order status?" --tenant acme
+```
+
+## Chat from HTTP
+
+You can also reach a published agent directly over HTTP. Send a POST request to the chat gateway using your chat key as a Bearer token:
+
+```bash
+curl -X POST "https://agents.example.com/v1/chat/acme/support" \
+  -H "Authorization: Bearer $ORCA_CHAT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Help me troubleshoot my setup.",
+    "stream": false
+  }'
+```
+
+Replace `acme` with your tenant identifier and `support` with the slug you assigned when publishing.
+
+## Public surface
+
+The chat gateway is intentionally narrow. It exposes only the operations an end user needs to have a conversation with an agent — nothing more. Your workspace configuration, internal run infrastructure, and sensitive resources are never reachable through this surface.
+
+<Note>
+  Through the chat gateway, callers can **send messages**, **receive responses**, and **continue conversations**. They cannot access agent profile configuration, workspace secrets, raw session internals, run event logs, storage administration, memory management, or any other workspace control-plane operation. The boundary between the chat surface and the control surface is enforced by the platform, not by convention.
+</Note>

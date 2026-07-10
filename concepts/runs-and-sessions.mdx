@@ -1,0 +1,51 @@
+---
+title: "Runs and Sessions: Work Units and Continuity in Orca"
+sidebarTitle: "Runs & Sessions"
+description: "A run is one task submitted to an agent. A session preserves context across related runs. Learn when to reuse sessions and how to cancel runs."
+---
+
+A **run** is the fundamental unit of work in Orca — one task submitted to an agent profile, executed with the agent's configured model and capabilities. A **session** is the continuity layer that lets related runs share context: conversation history, recent memories, and accumulated state. Together, runs and sessions give you precise control over what an agent remembers and when it starts fresh.
+
+## Runs
+
+To create a run, send a profile name and a prompt. You can optionally include a human-readable title to make run history easier to scan:
+
+```json
+{
+  "profile": "researcher",
+  "title": "Competitive scan",
+  "prompt": "Compare these three products for onboarding quality."
+}
+```
+
+Orca streams events while work is in progress — progress updates, assistant output, tool activity, usage counts, and a final result or error. The full event history is retained after the run completes so you can inspect it at any time.
+
+## Sessions
+
+When you omit `sessionId` from a run request, Orca creates a new session automatically. Pass an existing `sessionId` to continue a conversation or multi-step workflow with the same context that prior runs established.
+
+### Create a new session when
+
+- The task is unrelated to any prior work.
+- You want a clean context boundary between jobs.
+- You are running independent tasks in parallel and don't want their contexts to bleed into each other.
+
+### Reuse a session when
+
+- The user is asking follow-up questions about a previous response.
+- A workflow spans multiple steps and each step depends on shared context.
+- You want the agent's memory and recent interaction history to align with what the user has already seen.
+
+## Cancellation
+
+You can cancel an in-progress run from the CLI at any time:
+
+```bash
+orca runs cancel run_...
+```
+
+Cancellation tells Orca to stop the server-side execution immediately. The run's event history up to that point is preserved and remains available for inspection.
+
+<Warning>
+  Closing or detaching your local stream connection does **not** cancel the run. The agent continues executing on the server until it completes or you explicitly cancel it. Always use `orca runs cancel` or the equivalent API call if you need to stop work early.
+</Warning>

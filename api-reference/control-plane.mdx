@@ -1,0 +1,80 @@
+---
+title: "Control Plane API: Manage Agents, Runs, and Resources"
+sidebarTitle: "Control Plane"
+description: "The Orca control plane API manages agent profiles, runs, sessions, skills, MCP servers, storage, memory, keys, publishing, billing, and workflows."
+---
+
+The control plane API is the tenant-scoped HTTP API that powers the Orca dashboard, CLI, and SDKs. You use it to build and manage every resource in your Orca deployment — from authoring agent profiles and attaching skills, to streaming live run events and inspecting billing usage. If you are building automation, CI pipelines, or your own dashboard on top of Orca, the control plane API is your primary interface.
+
+## Base URL
+
+The base URL is configurable for each Orca deployment. Set it via the `ORCA_API_URL` environment variable or pass it directly in your HTTP client:
+
+```bash
+https://api.example.com
+```
+
+When using the Orca SDK, the client reads `ORCA_API_URL` automatically. For local development the default is `http://localhost:8080`.
+
+<Note>
+  All paths shown in the endpoint reference are relative to this base URL. For example, `GET /api/profiles` resolves to `https://api.example.com/api/profiles`.
+</Note>
+
+## Authentication
+
+### Tenant API key
+
+Send your tenant API key as a bearer token on every request:
+
+```bash
+Authorization: Bearer ao_...
+```
+
+Keys follow the format `ao_<env>_<random>` — for example, `ao_prod_aBcDeFgH...`. You can mint a key in the dashboard under **Settings → API Keys**, or with the CLI:
+
+```bash
+orca api-keys issue --label ci-deploy
+```
+
+The plaintext token is shown exactly once at creation time; the server stores only an HMAC hash. Keys inherit the RBAC role of the user who minted them.
+
+### Tenant header
+
+When your deployment uses explicit tenant selection, also include the tenant slug in the request header:
+
+```bash
+X-Tenant-ID: acme
+```
+
+<Tip>
+  The Orca SDKs send `X-Tenant-ID` automatically — you only need to set it manually when calling the API directly with tools such as `curl` or your own HTTP client. If you omit it, the API falls back to the `default` tenant.
+</Tip>
+
+## What you can manage
+
+The control plane API covers every resource group in Orca:
+
+- **Agent profiles** — Create, update, rename, and delete reusable agent definitions. Each profile binds a runtime (e.g. `claude`, `codex`) to a system prompt, skill set, tool selectors, MCP server references, sandbox policy, and filesystem access rules.
+- **Runs** — Start runs, stream live SSE events, cancel in-flight runs, and replay completed run event logs as newline-delimited JSON.
+- **Sessions** — List, inspect, and shut down live agent sessions. Each session is a runtime instance bound to a profile.
+- **Skills** — Manage the skill catalog: create skills from SKILL.md bodies, attach and detach them from profiles, and upload supporting resource files (scripts, references, assets).
+- **MCP servers** — Register, update, and delete MCP catalog entries. Test connectivity to a server before saving it.
+- **Storage** — Browse artifact storage, upload and download objects, and inspect bucket-wide usage and capacity.
+- **Memory** — Read, create, search, and delete per-profile memories. Access the cross-profile memory bank snapshot and bank-wide statistics.
+- **Secrets** — Store and rotate envelope-encrypted secrets. Plaintext is never returned after creation.
+- **Published agents & chat keys** — Publish profiles, update published-agent configuration, issue and revoke scoped chat keys for the chat gateway, and unpublish agents.
+- **Workflows** — Create workflow definitions, run and schedule them, stream status changes, and repair paused workflow runs.
+- **Billing** — Check your credit wallet balance, start a credit-pack checkout, and view or update your monthly spend cap.
+- **Stats** — Retrieve aggregate summaries, per-agent breakdowns, time-series buckets, and hotspot data for your tenant's activity.
+
+## Rate limits and errors
+
+The control plane API returns standard HTTP status codes. `4xx` responses include a JSON body with an `error` field containing a machine-readable code. For a full list of error codes and guidance on handling rate limits and retries, see the [Errors guide](/guides/errors-and-events).
+
+<Warning>
+  A `503` response means a required backing service (database, object store, secrets manager, or billing provider) is not reachable. These errors are transient — retry with exponential back-off.
+</Warning>
+
+## Endpoint reference
+
+The full auto-generated endpoint reference — including request schemas, response shapes, and interactive examples — is available in the **Control Plane API Reference** section directly below this page in the sidebar. That reference is generated from `api-reference/orca-openapi.yaml`.

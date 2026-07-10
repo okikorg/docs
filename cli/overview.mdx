@@ -1,0 +1,72 @@
+---
+title: "Orca CLI Overview: Install, Configure, and Get Started"
+sidebarTitle: "Overview"
+description: "Install the Orca CLI with a single command and start managing agents, runs, publishing, keys, storage, memory, and workflows from the terminal."
+---
+
+The `orca` CLI is your primary terminal interface to the Orca platform. It lets you manage agents, trigger and monitor runs, publish agents to chat endpoints, rotate API keys, inspect storage and memory, configure MCP servers and skills, and orchestrate workflows — all without leaving your terminal. The public CLI source and release binaries live at [github.com/okikorg/orca-cli](https://github.com/okikorg/orca-cli).
+
+## Install
+
+Run the one-line installer to download the latest release, verify its SHA-256 checksum, and place the binary at `~/.local/bin/orca`:
+
+```bash
+curl -fsSL https://orca-landing-woad.vercel.app/install.sh | sh
+```
+
+Make sure `~/.local/bin` is on your `PATH`. If it isn't, add the following to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) and reload your shell:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+You can pin a specific release or change the install destination using environment variables before running the installer:
+
+| Variable | Purpose |
+| --- | --- |
+| `ORCA_VERSION` | Pin a specific CLI version (e.g. `0.12.1`) instead of installing the latest release |
+| `ORCA_INSTALL_DIR` | Override the install directory (default: `~/.local/bin`) |
+
+## First commands
+
+After installing, log in and run a quick health check to confirm everything is wired up correctly:
+
+```bash
+orca auth login        # Open a browser tab to authenticate
+orca doctor            # Verify connectivity and config
+orca agents list       # List agents in your workspace
+orca run researcher "Explain Orca in one sentence."
+```
+
+## Output modes
+
+Every `list` and `get` command accepts the `--json` flag, which emits structured JSON instead of a formatted table. Use it to pipe results into `jq`, scripts, or other tools:
+
+```bash
+orca agents list --json
+orca runs tail run_... --json
+```
+
+When `stdout` is not a TTY — for example, inside a shell pipeline — table output automatically falls back to plain tab-separated text so downstream tools can parse it without the `--json` flag.
+
+## Contexts
+
+Contexts let you switch between different Orca deployments (such as a local dev instance, a staging cluster, and production) the same way `kubectl` contexts work. Each context stores a separate API URL and credentials so you never have to re-authenticate when switching targets.
+
+```bash
+orca context list                    # Show all saved contexts
+orca context use prod                # Switch the active context to "prod"
+orca --context prod agents list      # Run a single command against a specific context
+```
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/cli/authentication">
+    Log in with browser OAuth or a token, manage contexts, and configure environment variables.
+  </Card>
+  <Card title="Commands" icon="terminal" href="/cli/commands">
+    Full reference for every command group: agents, runs, publishing, chat, keys, and more.
+  </Card>
+  <Card title="Agent Files" icon="file-code" href="/cli/agent-files">
+    Define and version agents as YAML or JSON files and apply them with a single command.
+  </Card>
+</CardGroup>

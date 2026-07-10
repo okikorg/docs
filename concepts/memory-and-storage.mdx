@@ -1,0 +1,62 @@
+---
+title: "Persisting Knowledge: Agent Memory and Storage in Orca"
+sidebarTitle: "Memory & Storage"
+description: "Orca provides two persistence surfaces: memory for searchable knowledge and storage for files. Learn which to use and how to manage both with the CLI."
+---
+
+Orca gives agents two ways to persist information between runs. **Memory** is a searchable knowledge surface where agents can store and retrieve facts, preferences, summaries, and contextual notes. **Storage** is a file-oriented surface where agents and users can read and write documents, artifacts, and binary content. Knowing which surface to reach for keeps your agents fast and your workspace organized.
+
+## Memory
+
+Memory stores knowledge associated with an agent and your workspace. When an agent records a fact, preference, or summary to memory, that information survives the end of the run and becomes available to future runs through semantic search. Use memory for anything that should inform the agent's behavior over time — user preferences, learned facts, reference summaries, and distilled research.
+
+CLI examples:
+
+```bash
+# List all memory entries for an agent
+orca memory list researcher
+
+# Search an agent's memory semantically
+orca memory search researcher "billing policy"
+
+# Inspect a specific memory entry
+orca memory show researcher mem_...
+
+# View memory usage statistics for your workspace
+orca memory bank stats
+```
+
+## Storage
+
+Storage holds tenant-scoped files that agents and users can read or write through approved surfaces. Use it for documents, exported reports, uploaded reference material, and any binary content that an agent produces or consumes during a run.
+
+CLI examples:
+
+```bash
+# Show storage quota and usage for your workspace
+orca storage info
+
+# List files in a storage path
+orca storage ls docs/
+
+# Upload a local file to storage
+orca storage put docs/faq.md ./faq.md
+
+# Download a file from storage
+orca storage get docs/faq.md --output faq.md
+
+# Delete a file from storage
+orca storage rm docs/old.md --yes
+```
+
+## When to use each
+
+| Need | Use |
+| --- | --- |
+| Searchable knowledge, facts, summaries, and preferences | Memory |
+| Files, artifacts, documents, and binary content | Storage |
+| External systems of record (databases, APIs, SaaS tools) | MCP server |
+
+<Tip>
+  If you need agents to read from or write to an external system — a CRM, database, ticketing tool, or internal API — use an MCP server rather than copying data into memory or storage. MCP servers keep external data in the system of record and give agents live, permissioned access without duplication.
+</Tip>

@@ -1,0 +1,93 @@
+---
+title: "Create and Configure an Orca Agent Profile — Full Guide"
+sidebarTitle: "Create an Agent"
+description: "Define a reusable Orca agent profile with model, runtime, system prompt, tools, skills, and MCP servers using YAML or the HTTP API."
+---
+
+An agent profile is a named, reusable configuration that tells Orca how to execute work: which model to use, which runtime to apply, what the agent's instructions are, and which tools, skills, or external MCP servers it can access. You define a profile once and reference it by name in every run. Updating the profile automatically affects all future runs that use it, which makes profiles the single source of truth for agent behavior across your team.
+
+## Minimal profile
+
+The smallest valid profile needs a name, a runtime, a model, and a system prompt. Create a file called `support-bot.yaml`:
+
+```yaml
+name: support-bot
+runtime: general
+model: anthropic:claude-opus-4-6
+systemPrompt: You answer support questions clearly and ask for missing context.
+tools:
+  - "@default"
+```
+
+Register it with the CLI:
+
+```bash
+orca agents create -f support-bot.yaml
+```
+
+Or create it directly with the HTTP API:
+
+```bash
+curl -X POST "$ORCA_API_URL/api/profiles" \
+  -H "Authorization: Bearer $ORCA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "support-bot",
+    "runtime": "general",
+    "model": "anthropic:claude-opus-4-6",
+    "systemPrompt": "You answer support questions clearly and ask for missing context.",
+    "tools": ["@default"]
+  }'
+```
+
+Both approaches register the same profile. The CLI path is convenient for local development; the API path integrates into automated provisioning workflows.
+
+## Runtime and model
+
+The `runtime` field controls execution behavior and determines which model format Orca expects in the `model` field.
+
+| Runtime | Model format | Use for |
+| --- | --- | --- |
+| `general` | `anthropic:...`, `openai:...`, `google:...`, `groq:...` | Multi-provider agents |
+| `claude` | Claude model names | Claude-specific behavior |
+| `codex` | Codex or OpenAI coding model names | Coding-focused agents |
+
+<Tip>
+  When you're unsure which runtime to use, start with `general`. It gives you the widest model compatibility and the most flexibility as your requirements evolve.
+</Tip>
+
+## Add tools and skills
+
+Tools give your agent callable capabilities it can invoke during a run. Skills are reusable packages of instructions and resources — define them once and share them across multiple agent profiles.
+
+The `@default` tool bundle includes Orca's standard built-in tools. You can list additional named tools or skills alongside it:
+
+```yaml
+name: docs-researcher
+runtime: general
+model: openai:gpt-5.5
+systemPrompt: You research product documentation and return actionable answers.
+tools:
+  - "@default"
+skills:
+  - orca-docs
+```
+
+Adding the `orca-docs` skill injects its instructions and resources into the agent's context automatically at run time. You can attach multiple skills to a single profile.
+
+## Attach MCP servers
+
+MCP (Model Context Protocol) servers connect your agent to external systems through a standardized tool interface. Add them under `mcpServers` in your profile:
+
+```yaml
+mcpServers:
+  - name: docs
+    transport: http
+    url: https://mcp.example.com/docs
+```
+
+<Tip>
+  Use Orca secret references (e.g., `${secrets.MY_SECRET}`) for sensitive values like API tokens and authorization headers. Never embed raw credentials directly in agent profile files or commit them to version control. Manage your secrets through the Orca dashboard or the `orca secrets` CLI commands.
+</Tip>
+
+Once the profile is saved, every run that references it will have access to the attached MCP servers as callable tools. You can update the `mcpServers` list at any time — changes take effect on the next run.

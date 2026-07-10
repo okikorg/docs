@@ -1,0 +1,71 @@
+---
+title: "Extending Agents with Tools, Skills, and MCP Servers"
+sidebarTitle: "Tools & Skills"
+description: "Give Orca agents controlled capabilities using built-in tool bundles, reusable skills, and external MCP servers. Learn how to attach each to your agents."
+---
+
+Orca gives you three ways to extend what an agent can do. **Tools** are built-in callable capabilities bundled by Orca and attached directly to a profile. **Skills** package reusable instructions and domain knowledge that you can share across agents. **MCP servers** connect agents to external systems by exposing their APIs as callable tools. You can mix all three on a single agent, and each type has a distinct role in keeping your agent's capabilities purposeful and maintainable.
+
+## Tools
+
+Tools are callable capabilities built into Orca. Rather than attaching tools one by one, you reference them as named bundles in your profile's `tools` field:
+
+- **`@default`** — A curated set of general-purpose actions suitable for most agents, including web search, basic file operations, and common utilities.
+- **`@orchestration`** — Tools that let an agent coordinate sub-tasks, spawn child runs, or manage multi-step workflows.
+- **`@fs`** — File system tools for reading, writing, listing, and managing files within the agent's workspace storage.
+
+Keep the bundle list as small as the agent's job requires. Attaching every available bundle increases the surface area for unintended actions.
+
+## Skills
+
+Skills package instructions, procedures, and optional resources into a reusable unit. When many agents need the same domain rules, workflow steps, or task-specific guidance, you define it once as a skill and attach it wherever it's needed — rather than duplicating system prompt content across profiles.
+
+Common CLI commands for working with skills:
+
+```bash
+# List all skills in your workspace
+orca skills list
+
+# Inspect a specific skill
+orca skills get orca-docs
+
+# Preview an import without making changes
+orca skills import ./skills/researcher --dry-run
+
+# Attach a skill to an agent profile
+orca skills attach researcher orca-docs
+```
+
+## MCP servers
+
+MCP servers expose external systems — databases, APIs, internal services — as tools that your agents can call during a run. You register an MCP server once in your workspace, verify it works, and then attach it to any profiles that need access.
+
+```bash
+# Register a new MCP server
+orca mcp add --name docs --url https://mcp.example.com/docs --transport http
+
+# Verify the server is reachable and its tools are listed correctly
+orca mcp test docs
+
+# Attach the server to an agent profile
+orca mcp attach researcher docs
+```
+
+## Secrets
+
+MCP servers often need authentication headers or tokens to reach external systems. Never put sensitive values directly in your profile or MCP server configuration. Store them in Orca's secrets store and reference them using the `secret://name` syntax:
+
+```bash
+# Store a secret
+orca secrets set ANTHROPIC_API_KEY --key ANTHROPIC_API_KEY
+```
+
+You can then reference `secret://ANTHROPIC_API_KEY` in your MCP server header configuration. Orca resolves the value at runtime and never exposes it in logs or run history.
+
+## When to use each
+
+| Need | Use |
+| --- | --- |
+| Common built-in actions (search, files, orchestration) | Tool bundle (`@default`, `@fs`, `@orchestration`) |
+| Reusable instructions, domain rules, or procedures shared across agents | Skill |
+| External API, database, or third-party service | MCP server |

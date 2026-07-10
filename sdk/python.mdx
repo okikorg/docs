@@ -1,0 +1,85 @@
+---
+title: "Orca Python SDK: Runs, Streaming, and Agent Profiles"
+sidebarTitle: "Python"
+description: "Use the Orca Python SDK to create runs, stream events, and manage agents from Python applications, scripts, or automation workflows."
+---
+
+The Orca Python SDK provides a straightforward client for the Orca control-plane API. You can use it to register profiles, submit runs, stream real-time output, and manage sessions, storage, and memory — from web services, Jupyter notebooks, automation scripts, or any other Python environment. The SDK supports both synchronous and asynchronous usage, so it integrates cleanly whether you are writing a simple script or a fully async application.
+
+## Installation
+
+Install the SDK from PyPI:
+
+```bash
+pip install agentorc
+```
+
+## Client setup
+
+Import `AgentOrcClient` and instantiate it with your credentials. The recommended approach reads values from environment variables so that secrets never appear in source code:
+
+```python
+import os
+from agentorc import AgentOrcClient 
+
+client = AgentOrcClient(
+    base_url=os.environ["ORCA_API_URL"],
+    tenant_id=os.environ.get("ORCA_TENANT_ID"),
+    token=os.environ["ORCA_API_KEY"],
+)
+```
+
+<Note>
+  Set `ORCA_API_URL`, `ORCA_API_KEY`, and `ORCA_TENANT_ID` in your environment before running your script. Do not hard-code these values or commit them to source control.
+</Note>
+
+## Create a profile
+
+A profile is a reusable agent definition — it sets the runtime, model, system prompt, and available tools. Call `client.profiles.create` to register one:
+
+```python wrap twoslash
+client.profiles.create(
+	name="researcher", 
+	runtime="general", 
+	model="...", 
+	tools=["@default"]
+)
+```
+
+You only need to create a profile once. After that, submit runs against it by name.
+
+## Submit a run
+
+Call `client.runs.create` with the profile name and a prompt. The response contains a `run_id` and a `session_id` you can use to continue the conversation across multiple turns:
+
+```python
+run = client.runs.create(
+    profile="researcher",
+    title="SDK onboarding",
+    prompt="Explain Orca profiles and runs in three bullets.",
+)
+
+print("Run ID:", run.run_id)
+print("Session ID:", run.session_id)
+```
+
+## Stream events
+
+After creating a run, stream its events with `client.runs.stream`. Iterate over the stream with a standard `for` loop — each iteration yields one event:
+
+```python
+for event in client.runs.stream(id=run.run_id):
+    if event.type in ("assistant", "result"):
+        if event.message:
+            print(event.message, end="", flush=True)
+    elif event.type == "tool_call":
+        print(f"\n[tool] {event.tool_name}")
+    elif event.type == "error":
+        print(f"\n[error] {event.message}")
+```
+
+The stream closes automatically when the run finishes. You do not need to call `close()` explicitly when using a `for` loop.
+
+<Tip>
+  For long-running runs inside an async application, use `async for event in await client.runs.stream_async(id=run.run_id)` to avoid blocking the event loop. The async variant yields the same event objects as the synchronous stream.
+</Tip>

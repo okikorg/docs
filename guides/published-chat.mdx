@@ -1,0 +1,73 @@
+---
+title: "Publish an Orca Agent as a Scoped User-Facing Chat Endpoint"
+sidebarTitle: "Published Chat"
+description: "Expose a selected Orca agent through a scoped chat endpoint for customer support, embedded copilots, partner integrations, and internal tooling."
+---
+
+Publish an agent when an end-user application should be able to chat with a specific agent without receiving access to your full Orca workspace. Publishing creates a scoped chat endpoint — isolated from your control-plane API — that accepts a narrow chat key instead of your tenant API key. Use this surface when you want to give users or external partners a conversational interface to one approved agent, and nothing more.
+
+## When to publish
+
+Use a published agent when you need:
+
+- **Support assistants** that handle inbound customer questions and route or resolve common issues.
+- **Embedded product copilots** that guide users through your product inside your own UI.
+- **Internal tools** where employees should chat with one approved agent without needing workspace access.
+- **Partner integrations** that require a narrow, stable API surface scoped to a single agent.
+
+<Note>
+  Do **not** use the chat gateway for workspace administration — creating agents,
+  managing profiles, updating skills, or accessing storage and billing. Those
+  operations require a tenant API key and must go through the control-plane API,
+  CLI, or SDKs.
+</Note>
+
+## Publish and create a key
+
+Publish the agent under a URL-safe slug, then create a chat key scoped to that agent:
+
+```bash
+orca agents publish support --slug support
+orca agents keys create support
+```
+
+<Warning>
+  The chat key is displayed **once** at creation time. Copy it immediately and
+  store it securely in your application backend (for example, as an environment
+  secret). You cannot retrieve the key value again after the command exits.
+</Warning>
+
+## Call the chat gateway
+
+Send a `POST` request to the published agent's chat endpoint. Include the chat key in the `Authorization` header:
+
+```bash
+curl -X POST "https://agents.example.com/v1/chat/acme/support" \
+  -H "Authorization: Bearer $ORCA_CHAT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Help me understand my setup issue.",
+    "stream": false
+  }'
+```
+
+Replace `acme` with your tenant slug and `support` with the slug you assigned when publishing.
+
+## Streaming chat
+
+Set `stream: true` in the request body to receive a Server-Sent Events stream so your UI can update as the agent works. The response includes a `conversation_id` — preserve it and pass it back with every follow-up message in the same conversation so the agent retains full context.
+
+```bash
+curl -X POST "https://agents.example.com/v1/chat/acme/support" \
+  -H "Authorization: Bearer $ORCA_CHAT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Can you elaborate on step 3?",
+    "conversation_id": "conv_...",
+    "stream": true
+  }'
+```
+
+## Security boundary
+
+The chat gateway exposes only the conversational interface of the published agent. It does **not** expose agent profile editing, workspace secrets, storage administration, memory management, billing data, or tenant API keys. A compromised or leaked chat key gives an attacker access to one published agent's chat endpoint only — it cannot be used to administer your workspace.

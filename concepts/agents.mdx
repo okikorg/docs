@@ -1,0 +1,39 @@
+---
+title: "Orca Agent Profiles: Runtime, Model, and Capabilities"
+sidebarTitle: "Agents"
+description: "Orca agents are reusable profiles. Learn the profile fields that define an agent's runtime, model, instructions, tools, skills, and MCP servers."
+---
+
+An agent in Orca is a reusable profile — a named configuration that tells the platform how to run a task. The profile specifies which runtime and model to use, what standing instructions the agent follows, and which tools, skills, and external servers are available to it. Because profiles are separate from individual runs, you can iterate on an agent's configuration without losing its history, and you can submit many runs against the same profile in parallel.
+
+## Profile fields
+
+| Field | Purpose |
+| --- | --- |
+| `name` | Stable identifier used by the CLI, SDKs, and API calls |
+| `runtime` | Agent execution mode, such as `general`, `claude`, or `codex` |
+| `model` | Provider-specific model name |
+| `systemPrompt` | Base instructions that shape the agent's behavior on every run |
+| `tools` | Built-in tool bundles or individually named tools |
+| `skills` | Reusable skill packages attached to the agent |
+| `mcpServers` | External MCP servers whose tools are available to the agent |
+
+## Agent lifecycle
+
+1. **Create** a profile with a name, runtime, model, and initial system prompt.
+2. **Update** its instructions, model, tools, or skills as your requirements evolve.
+3. **Submit runs** against the profile to execute tasks and verify behavior.
+4. **Review** run history, usage metrics, stored memories, and event logs.
+5. **Publish** the agent when it should be reachable by end users through the chat gateway.
+
+## Good profile design
+
+- Give each agent a narrow, memorable name that reflects its single responsibility.
+- Put durable behavioral rules in `systemPrompt` so every run starts from the same baseline.
+- Attach only the tools and MCP servers the agent actually needs — smaller capability surfaces reduce unintended actions.
+- Use skills for repeatable procedures, domain rules, or task-specific guidance that multiple agents share.
+- Keep secrets out of the profile entirely; store them in Orca secrets and reference them indirectly.
+
+<Tip>
+  Store all sensitive values — API keys, tokens, passwords — using `orca secrets set` and reference them from your MCP server headers or runtime configuration as `secret://name`. This keeps credentials out of your profile files, version control, and run logs.
+</Tip>

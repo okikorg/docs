@@ -1,0 +1,108 @@
+---
+title: "Orca CLI Commands: Full Reference for Every Command Group"
+sidebarTitle: "Commands"
+description: "Full reference for every Orca CLI command group: agents, runs, publishing, chat, keys, usage, sessions, MCP servers, skills, pools, and workflows."
+---
+
+The `orca` CLI organises its functionality into command groups, each focused on a specific part of the platform. You can explore any group's subcommands by appending `--help` — for example, `orca agents --help` or `orca runs --help`. The sections below walk through every group with the most commonly used commands.
+
+<Tip>
+  Every `list` and `get` command across all groups supports a `--json` flag that emits machine-readable JSON. Pipe the output into `jq` or your own scripts to build lightweight automations on top of the CLI.
+</Tip>
+
+## Agents and runs
+
+Use the `agents` group to manage agent definitions and the `run` / `runs` group to trigger and monitor executions.
+
+```bash
+# Agent management
+orca agents list                        # List all agents in the workspace
+orca agents get <name>                  # Show full details for a single agent
+orca agents create -f agent.yaml        # Create a new agent from a file
+orca agents update [name] -f agent.yaml # Update an existing agent from a file
+orca agents delete <name> --yes         # Delete an agent (--yes skips confirmation)
+
+# Triggering and inspecting runs
+orca run <agent> "prompt"               # Start a run and stream the output
+orca runs list --agent <name>           # List recent runs for an agent
+orca runs get <id>                      # Show metadata and status for a run
+orca runs tail <id>                     # Stream live output from a run
+orca runs cancel <id>                   # Cancel an in-progress run
+```
+
+## Publishing and chat
+
+Publish an agent to a public chat endpoint and interact with it directly from the terminal.
+
+```bash
+# Publishing
+orca agents publish <name> --slug <slug>   # Publish an agent under a public slug
+orca agents unpublish <name> --yes         # Unpublish (--yes skips confirmation)
+orca agents keys list <agent>              # List API keys for a published agent
+orca agents keys create <agent>            # Create a new API key for a published agent
+orca agents keys revoke <agent> <id>       # Revoke a specific API key
+
+# Chat
+orca chat <agent> --tenant <tenant>        # Start an interactive chat session
+orca chat <agent> "message" --tenant <tenant>  # Send a single message and print the reply
+```
+
+## Keys, usage, and sessions
+
+Manage tenant-level API keys, inspect usage metrics, and review active sessions.
+
+```bash
+orca keys list                  # List all tenant API keys
+orca keys create [name]         # Create a new tenant API key
+orca keys revoke <id>           # Revoke an API key by ID
+
+orca usage --window 24h         # Show token and request usage over a time window
+
+orca sessions list --agent <name>  # List active or recent sessions for an agent
+orca sessions get <id>             # Show details for a specific session
+```
+
+## Tools and resources
+
+Configure the external tools, skills, secrets, storage, and memory that agents can access at runtime.
+
+```bash
+# MCP servers
+orca mcp list                                              # List registered MCP servers
+orca mcp add --name docs --url https://mcp.example.com/docs  # Register a new MCP server
+
+# Skills
+orca skills list                        # List available skills
+orca skills import ./skills/researcher  # Import a skill from a local directory
+
+# Execution pools, secrets, storage, and memory
+orca pools list                  # List sandbox execution pools
+orca secrets list                # List secrets available to agents
+orca storage ls                  # Browse agent-accessible storage
+orca memory bank stats           # Show memory bank statistics
+```
+
+## Health and observability
+
+Diagnose connectivity issues, inspect cluster topology, and check the status of bundles and connected apps.
+
+```bash
+orca doctor    # Run a full connectivity and configuration health check
+orca ping      # Quick reachability check against the configured API URL
+orca stats     # Show platform-level resource and usage statistics
+orca topology  # Display the cluster and service topology
+orca bundles   # List deployed bundles
+orca apps      # List connected applications
+```
+
+## Workflows
+
+Define, start, and monitor multi-step workflows.
+
+```bash
+orca workflows list                       # List all workflow definitions
+orca workflows start <definition-id>      # Start a new workflow run
+orca workflows runs                       # List recent workflow runs
+orca workflows tail <run-id>              # Stream live output from a workflow run
+orca workflows cancel <run-id> --yes      # Cancel a running workflow
+```

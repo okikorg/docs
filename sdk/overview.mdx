@@ -1,0 +1,56 @@
+---
+title: "Orca SDKs: TypeScript, Python, and Go Client Libraries"
+sidebarTitle: "Overview"
+description: "Official Orca SDKs for TypeScript, Python, and Go. Create runs, stream events, and manage agents from any service using the public control-plane API."
+---
+
+Orca ships three official client libraries so you can integrate agent runs, streaming output, and resource management directly into your own services and applications. Whether you are building a Node.js product feature, a Python automation script, or a Go backend service, each SDK wraps the same public control-plane API and exposes idiomatic patterns for its language.
+
+<CardGroup cols={3}>
+  <Card title="TypeScript SDK" icon="code" href="/sdk/typescript">
+    Integrate Orca into Node.js or browser applications. Supports async iteration for streaming events.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/sdk/python">
+    Use Orca from Python scripts, automation workflows, or backend services. Supports both sync and async streaming.
+  </Card>
+  <Card title="Go SDK" icon="server" href="/sdk/go">
+    Embed Orca into Go services with idiomatic types, options, and a raw-stream reader.
+  </Card>
+</CardGroup>
+
+## What SDKs cover
+
+All three SDKs expose the same set of operations against the control-plane API:
+
+- **Create and manage agents** — define profiles with a runtime, model, system prompt, and tools.
+- **Create runs** — submit a prompt to a named profile and receive a run ID and session ID.
+- **Stream events** — consume assistant output, tool activity, usage, and terminal results in real time.
+- **Manage sessions** — pass a session ID across related runs to preserve conversation continuity.
+- **Use skills** — attach reusable skill sets to a profile so agents gain extended capabilities.
+- **Manage storage** — read and write files accessible to agent runs.
+- **Manage memory** — store and retrieve persistent facts that agents can recall across runs.
+- **Publish agents** — expose a stable chat endpoint for end users without revealing authoring surfaces.
+
+## Authentication
+
+Every SDK authenticates with a bearer token. Set the following environment variables before creating a client:
+
+| Variable | Purpose |
+| --- | --- |
+| `ORCA_API_KEY` | Your API key, passed as a bearer token on every request. |
+| `ORCA_API_URL` | The base URL of your Orca control-plane instance. |
+| `ORCA_TENANT_ID` | Your tenant identifier (required by most multi-tenant deployments). |
+
+<Note>
+  Never hard-code your `ORCA_API_KEY` in source code. Use environment variables, a secrets manager, or a CI/CD secret store.
+</Note>
+
+## Common patterns
+
+All three SDKs follow the same three-step flow:
+
+1. **Create a client** — instantiate the client with your base URL, API key, and tenant ID.
+2. **Create a run** — call `runs.create` (or `Runs.Create` in Go) with a profile name and prompt.
+3. **Stream events** — iterate over the event stream to print or process assistant output as it arrives.
+
+The pages linked above walk through each step with full, runnable code examples for every SDK.

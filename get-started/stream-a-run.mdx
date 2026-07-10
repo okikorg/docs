@@ -1,0 +1,83 @@
+---
+title: "Streaming Orca Run Events with Server-Sent Events (SSE)"
+sidebarTitle: "Stream a Run"
+description: "Subscribe to live Orca run events via SSE. Handle progress, assistant output, tool calls, and terminal results as they arrive or replay them later."
+---
+
+Orca run output streams in real time using Server-Sent Events (SSE). As a run executes, the server pushes a sequence of typed JSON events — covering everything from initial progress and session setup through assistant text, tool activity, usage data, and the final result. You can consume this stream from the CLI, any of the Orca SDKs, or any HTTP client that supports `text/event-stream`. This page shows you how to open a stream, interpret the events you receive, replay stored events after the fact, and maintain session continuity across multiple runs.
+
+## Create a run
+
+Before you can stream, you need a run. Submit one with a POST request to `/api/runs`:
+
+```bash
+curl -X POST "$ORCA_API_URL/api/runs" \
+  -H "Authorization: Bearer $ORCA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "profile": "researcher",
+    "title": "Streaming example",
+    "prompt": "Write a short onboarding checklist."
+  }'
+```
+
+The response body contains a `runId` and a `sessionId`. You'll use the `runId` to open the SSE stream and the `sessionId` if you want to continue context in a follow-up run.
+
+## Stream events
+
+Open a live event stream for the run by passing the `runId` to the `/stream` endpoint:
+
+```bash
+curl -N "$ORCA_API_URL/api/runs/run_.../stream" \
+  -H "Authorization: Bearer $ORCA_API_KEY" \
+  -H "Accept: text/event-stream"
+```
+
+The `-N` flag disables output buffering so events appear as they arrive. Each line in the response has the form `data: {...}` where the payload is a JSON object with a `type` field. The stream closes automatically when the run reaches a terminal state (`result` or `error`).
+
+Common event types and their meanings:
+
+| Type | Meaning |
+| --- | --- |
+| `progress` | The run moved to a new execution stage |
+| `session_init` | A session has been initialized and is ready |
+| `assistant` | A chunk of assistant text is available |
+| `tool_call` | The agent is invoking a tool |
+| `tool_result` | A tool has returned its output |
+| `usage` | Token or resource usage data was reported |
+| `result` | The run completed successfully — this is the terminal event |
+| `error` | The run failed — the payload contains error details |
+
+<Note>
+  Detaching your local stream (for example, pressing `Ctrl-C` in the CLI or closing an HTTP connection) does **not** cancel the run server-side. The run continues executing until it reaches a terminal state or you cancel it explicitly with `orca runs cancel run_...` or the `DELETE /api/runs/{runId}` endpoint.
+</Note>
+
+## Resume from stored events
+
+If you missed the live stream — or want to replay the full event log after the run completes — use the events replay endpoint instead:
+
+```bash
+curl "$ORCA_API_URL/api/runs/run_.../events" \
+  -H "Authorization: Bearer $ORCA_API_KEY"
+```
+
+This returns the persisted, ordered sequence of all events for the run. It's useful for debugging, auditing, rendering run history in a UI, or recovering output when a live stream was interrupted.
+
+## Session continuity
+
+Each run returns a `sessionId`. Pass the same `sessionId` in a subsequent run to continue the conversation in the same context window — the agent remembers what happened in earlier runs within the session:
+
+```json
+{
+  "profile": "researcher",
+  "sessionId": "sess_...",
+  "title": "Follow-up",
+  "prompt": "Now turn that into release-note copy."
+}
+```
+
+Submit this payload to `POST /api/runs` the same way you created the initial run. Orca routes the new run through the existing session so the agent can reference prior context without you managing memory manually.
+
+<Tip>
+  Store the `sessionId` from your first run if you expect follow-up interactions. You can reuse a session ID across as many runs as you need — Orca tracks the full history server-side.
+</Tip>

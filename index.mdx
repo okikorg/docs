@@ -1,0 +1,45 @@
+---
+title: "Orca Docs: Dashboard, CLI, SDKs, and API Reference"
+sidebarTitle: "Home"
+description: "Navigate Orca documentation: quickstarts, architecture overviews, CLI and SDK references, and the control-plane and chat gateway API docs."
+---
+
+Orca is an AI agent platform built for teams who need reliable, reusable agents across their products and workflows. You define an agent once — its model, runtime, instructions, tools, and integrations — and then run it from the dashboard, CLI, SDKs, or API. As your use cases grow, Orca scales with you: attach skills, connect MCP servers, stream live run output, and publish selected agents as production chat endpoints without exposing your authoring surface.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install the CLI, create your first agent, and stream a run in under 5 minutes.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+    Understand how agents, runs, sessions, and publishing fit together.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/cli/overview">
+    Manage every Orca resource from the terminal or a shell script.
+  </Card>
+  <Card title="SDKs" icon="code" href="/sdk/overview">
+    Use TypeScript, Python, or Go clients against the control-plane API.
+  </Card>
+  <Card title="API Reference" icon="brackets-curly" href="/api-reference/control-plane">
+    Explore the full control-plane API for agents, runs, sessions, and more.
+  </Card>
+  <Card title="Integrate Orca" icon="plug" href="/guides/integrate-orca">
+    Add Orca to your product: submit runs, stream progress, and surface results.
+  </Card>
+</CardGroup>
+
+## What you can build
+
+- **Product features** that submit agent work and stream live progress to end users.
+- **Internal automation** that creates agent profiles, launches runs on a schedule, and tracks usage.
+- **Vertical agents** for support, research, operations, and coding — each with reusable configuration you define once and reuse everywhere.
+- **Public chat endpoints** for selected agents, published behind a stable gateway that keeps your control plane private.
+
+## Main surfaces
+
+| Surface | Use it for |
+| --- | --- |
+| Dashboard | Create and manage agents visually, inspect runs, and monitor usage |
+| CLI | Operate every Orca resource from a terminal or CI script |
+| SDKs | Integrate Orca into product code using TypeScript, Python, or Go clients |
+| Control plane API | Manage agents, runs, sessions, skills, tools, storage, memory, keys, and workflows over HTTP |
+| Chat gateway API | Send end-user chat messages to published agents over a stable, access-controlled endpoint |

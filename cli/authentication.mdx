@@ -1,0 +1,58 @@
+---
+title: "Orca CLI Authentication: Login, Tokens, and Contexts"
+sidebarTitle: "Authentication"
+description: "Authenticate the Orca CLI using browser OAuth or an API token. Manage multiple deployment contexts and configure all supported environment variables."
+---
+
+The Orca CLI authenticates using tenant API keys. When you log in, the CLI stores credentials in a local config file (see `ORCA_CONFIG_DIR` below) and associates them with a named context. You can maintain multiple contexts — for example, one for a local development instance and one for production — and switch between them at will.
+
+## Browser login
+
+For interactive use, the browser-based login flow is the easiest option. Running `orca auth login` opens a tab in your default browser, completes the OAuth handshake, and writes credentials to your config automatically:
+
+```bash
+orca auth login        # Opens a browser tab to complete login
+orca auth status       # Print the currently authenticated user and context
+orca auth logout --revoke   # Log out and revoke the stored token
+```
+
+If you are connecting to a self-hosted or locally running deployment, supply the API and dashboard URLs explicitly:
+
+```bash
+orca auth login \
+  --api-url http://localhost:8080 \
+  --dashboard-url http://localhost:5173
+```
+
+## Token login
+
+Use token-based login for non-interactive environments such as scripts, CI pipelines, or SSH sessions where a browser is not available. Pass your API key directly with the `--with-token` flag:
+
+```bash
+orca auth login --api-url https://api.example.com --with-token ao_...
+```
+
+Alternatively, set environment variables so the CLI picks up credentials without a stored config file at all:
+
+```bash
+ORCA_API_KEY=ao_... ORCA_API_URL=https://api.example.com orca agents list --json
+```
+
+<Tip>
+  Environment variables take precedence over the stored config, making them ideal for CI/CD pipelines. Set `ORCA_API_KEY` and `ORCA_API_URL` as repository secrets and the CLI will authenticate automatically without any `orca auth login` step.
+</Tip>
+
+## Environment variables
+
+The CLI respects the following environment variables. Any value set here overrides the corresponding value in the active context.
+
+| Variable | Purpose |
+| --- | --- |
+| `ORCA_API_KEY` | Tenant API key used to authenticate all requests |
+| `ORCA_API_URL` | Base URL of the Orca control-plane API |
+| `ORCA_DASHBOARD_URL` | Dashboard URL used during browser-based login |
+| `ORCA_GATEWAY_URL` | Public chat gateway URL for published agents |
+| `ORCA_CHAT_KEY` | API key for accessing a published-agent chat endpoint |
+| `ORCA_TENANT` | Tenant slug passed automatically to `orca chat` commands |
+| `ORCA_CONTEXT` | Name of the context to activate for every command |
+| `ORCA_CONFIG_DIR` | Override the directory where the CLI stores its config and credentials |

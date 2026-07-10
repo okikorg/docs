@@ -1,0 +1,91 @@
+---
+title: "Orca Agent Files: YAML and JSON Configuration Reference"
+sidebarTitle: "Agent Files"
+description: "Define and version Orca agents as YAML or JSON files. Covers all profile fields: runtime, model, tools, skills, MCP servers, fs paths, and sandbox."
+---
+
+Agent files are YAML or JSON documents that describe an agent's full configuration: the runtime and model it uses, the system prompt it receives, the tools and skills it can call, the MCP servers it connects to, and the sandbox resources it runs in. Storing agent definitions as files means you can version them in source control, review changes in pull requests, and apply them to any Orca deployment with a single command.
+
+## Example agent file
+
+The following YAML file demonstrates every major field. Not all fields are required — start with `name`, `runtime`, `model`, and `systemPrompt`, then add the rest as your agent's needs grow.
+
+```yaml
+name: support-bot
+runtime: claude
+model: claude-sonnet-5
+systemPrompt: |
+  You answer support questions clearly and concisely.
+  When you are unsure, say so and offer to escalate.
+skills:
+  - orca-docs
+tools:
+  - "@orchestration"
+mcpServers:
+  - name: docs
+    transport: http
+    url: https://mcp.example.com/docs
+fs:
+  read:
+    - /agents/self
+sandbox:
+  provider: e2b
+  resources:
+    cpu: 2
+    memoryMB: 1024
+```
+
+## Create and update
+
+Pass a file to `orca agents create` to create a new agent, or to `orca agents update` to update an existing one. Both commands accept a path or stdin.
+
+```bash
+# Create a new agent from a YAML file
+orca agents create -f support-bot.yaml
+
+# Update an existing agent in-place
+orca agents update support-bot -f support-bot.yaml
+
+# Pipe from stdin (useful in scripts and CI)
+cat support-bot.yaml | orca agents create -f -
+```
+
+<Note>
+  `orca agents update` merges the file contents into the existing agent record. Fields you omit in the file are left unchanged on the server, so you can maintain partial files that only override specific settings.
+</Note>
+
+## Strict mode
+
+By default, the CLI warns about unrecognised keys in your agent file but still applies the changes. This lets you add comments or placeholder fields without blocking deployments. When you want unknown keys to be treated as hard errors — for example, in a CI pipeline where a typo should fail the build — pass `--strict`:
+
+```bash
+orca agents create -f support-bot.yaml --strict
+```
+
+With `--strict`, the command exits with a non-zero status code if any key in the file is not part of the known agent profile schema, so misconfigured files never silently reach production.
+
+<Tip>
+  Before importing a skill, run `orca skills import ./skills/my-skill --dry-run` to validate the skill definition and preview what would change without committing anything. This is especially useful in code review workflows where you want to confirm the diff before merging.
+</Tip>
+
+## Profile field reference
+
+The table below covers the most important fields in an agent profile file.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | Unique agent identifier within the workspace |
+| `runtime` | `string` | Model provider runtime — e.g. `claude`, `openai`, `bedrock` |
+| `model` | `string` | Specific model ID to use — e.g. `claude-sonnet-5`, `gpt-4o` |
+| `systemPrompt` | `string` | System-level instructions given to the model at the start of every run |
+| `skills` | `string[]` | List of skill names to attach to the agent |
+| `tools` | `string[]` | Built-in tool groups to enable — e.g. `@orchestration`, `@search` |
+| `mcpServers` | `object[]` | MCP server connections; each entry requires `name`, `transport`, and `url` |
+| `mcpServers[].transport` | `string` | Transport protocol — `http` or `sse` |
+| `fs.read` | `string[]` | Filesystem paths the agent is allowed to read at runtime |
+| `fs.write` | `string[]` | Filesystem paths the agent is allowed to write at runtime |
+| `fs.delete` | `string[]` | Filesystem paths the agent is allowed to delete at runtime |
+| `fs.deny` | `string[]` | Filesystem paths that are explicitly blocked, overriding any read or write grants |
+| `sandbox.provider` | `string` | Sandbox execution provider — e.g. `e2b` |
+| `sandbox.resources.cpu` | `integer` | Number of vCPUs to allocate to the sandbox |
+| `sandbox.resources.memoryMB` | `integer` | Memory in megabytes to allocate to the sandbox |
